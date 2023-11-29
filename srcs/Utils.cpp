@@ -1,9 +1,101 @@
 #include "../includes/Utils.hpp"
 
+std::vector<std::string>    get_files_in_directory(const std::string &path) {
+    std::vector<std::string>    files;
+    DIR                         *dp;
+    struct dirent               *dirp;
+
+    if ((dp = opendir(path.c_str())) == NULL) {
+        std::cerr << "Error: cannot open directory" << std::endl;
+        exit(1);
+    }
+    // loop through all the files and directories within directory dir and push them into vector files
+    while ((dirp = readdir(dp)) != NULL) {
+        if (dirp->d_name[0] != '.')
+            files.push_back(dirp->d_name);
+    }
+    closedir(dp);
+    return files;
+}
+
+bool is_directory(const std::string &path) {
+    struct stat s;
+    if (stat(path.c_str(), &s) == 0) {
+        if (s.st_mode & S_IFDIR)
+            return true;
+    }
+    return false;
+}
+
+// check if path is a file
+bool is_file(const std::string &path) {
+    struct stat s;
+    if (stat(path.c_str(), &s) == 0) {
+        if (s.st_mode & S_IFREG)
+            return true;
+    }
+    return false;
+}
+
+std::vector<std::string> get_files_in_directory(std::string dir) {
+    std::vector<std::string>    files;
+    DIR                         *dp;
+    struct dirent               *dirp;
+
+    if ((dp = opendir(dir.c_str())) == NULL) {
+        std::cerr << "Error: cannot open directory" << std::endl;
+        exit(1);
+    }
+    // loop through all the files and directories within directory dir and push them into vector files
+    while ((dirp = readdir(dp)) != NULL) {
+        if (dirp->d_name[0] != '.')
+            files.push_back(dirp->d_name);
+    }
+    closedir(dp);
+    return files;
+
+}
+
+bool is_ip_address(std::string str) {
+    std::vector<std::string>    tokens = split(str, ".");
+    int                         token_size = tokens.size();
+
+    if (token_size != 4)
+        return false;
+    for (int i = 0; i < token_size; i++) {
+        if (tokens[i].empty())
+            return false;
+        for (size_t j = 0; j < tokens[i].size(); j++) {
+            if (!isdigit(tokens[i][j]))
+                return false;
+        }
+        int num = stoi(tokens[i]);
+        if (num < 0 || num > 255)
+            return false;
+    }
+    return true;
+}
+
 int stoi( std::string &s) {
     int i;
     std::istringstream(s) >> i;
     return i;
+}
+
+std::string itos(int i) {
+    std::stringstream s;
+    s << i;
+    return s.str();
+}
+
+bool exist(std::string path) {
+    struct stat buffer;
+    return (stat(path.c_str(), &buffer) == 0);
+}
+
+bool file_exists(const std::string &path) {
+    bool exists = access(path.c_str(), F_OK) == 0;
+    return exists;
 }
 
 void invalid_config_file(void) {
@@ -33,7 +125,7 @@ std::string  trim(std::string str) {
     return str.substr(first, (last - first + 1));
 }
 
-e_status line_checker(std::string line, std::stack<char> &bracket, e_status &status, ConfigParser &config) {
+e_status line_checker(std::string line, std::stack<char> &bracket, ConfigParser &config) {
     line = trim(line);
     if (line.empty())
         return CONTINUE;

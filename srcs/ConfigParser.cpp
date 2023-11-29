@@ -33,7 +33,7 @@ void    ConfigParser::parse_config_file(std::ifstream &ifs, std::vector<Server> 
     std::string         line;
 
     while (std::getline(ifs, line)) {
-        _status = line_checker(line, bracket, _status, *this);
+        _status = line_checker(line, bracket, *this);
         if (_status == CONTINUE || _status == NONE) {
             _status = NONE;
             continue;
@@ -41,7 +41,7 @@ void    ConfigParser::parse_config_file(std::ifstream &ifs, std::vector<Server> 
         Server server;
         while(_status == SERVER) {
             if (std::getline(ifs, line)) {
-                _status = line_checker(line, bracket, _status, *this);
+                _status = line_checker(line, bracket, *this);
                 if (_status == CONTINUE) {
                     _status = SERVER;
                     continue;
@@ -54,7 +54,7 @@ void    ConfigParser::parse_config_file(std::ifstream &ifs, std::vector<Server> 
 
                     while (_status == LOCATION) {
                         getline(ifs, line);
-                        _status = line_checker(line, bracket, _status, *this);
+                        _status = line_checker(line, bracket, *this);
                         if (_status == SERVER)
                             break;
                         if (_status == CONTINUE) {
@@ -62,7 +62,7 @@ void    ConfigParser::parse_config_file(std::ifstream &ifs, std::vector<Server> 
                             continue;
                         }
                         std::vector<std::string> tokens = split(trim(line));
-                        setup_location(tokens, server, location);
+                        setup_location(tokens, location);
                     }
                     if (_status == SERVER)
                         continue;
@@ -84,11 +84,13 @@ void    ConfigParser::setup_server(std::vector<std::string> tokens, Server &serv
         server.set_client_max_body_size(tokens[1]);
     else if (tokens[0] == "error_page" && tokens.size() == 3)
         server.set_error_page(tokens);
+    else if (tokens[0] == "host" && tokens.size() == 2)
+        server.set_host(tokens[1]);
     else
         invalid_config_file();
 }
 
-void    ConfigParser::setup_location(std::vector<std::string> tokens, Server &server, Location &location) {
+void    ConfigParser::setup_location(std::vector<std::string> tokens, Location &location) {
     if (tokens[0] == "root" && tokens.size() == 2)
         location.set_root(tokens[1]);
     else if (tokens[0] == "index" && tokens.size() == 2)

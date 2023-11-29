@@ -2,7 +2,7 @@
 
 Server::Server() {
     _port = -1;
-    _client_max_body_size = -1;
+    _client_max_body_size = MAX_SIZE;
 }
 
 Server::Server(const Server &src) {
@@ -11,11 +11,13 @@ Server::Server(const Server &src) {
 
 Server &Server::operator=(const Server &src) {
     if (this != &src) {
+        _host = src._host;
         _port = src._port;
         _client_max_body_size = src._client_max_body_size;
         _server_name = src._server_name;
         _error_page = src._error_page;
         _location = src._location;
+        _socket_fd = src._socket_fd;
     }
     return *this;
 }
@@ -23,6 +25,22 @@ Server &Server::operator=(const Server &src) {
 Server::~Server() {}
 
 /*      SETTERS       */
+
+void    Server::set_host(std::string host) {
+    if (host == "localhost"){
+        _host = "127.0.0.1";
+    }
+    else if (host == "*" || host == "0.0.0.0")
+        host = "0.0.0.0";
+    else {
+        struct sockaddr_in sa;
+        int result = inet_pton(AF_INET, host.c_str(), &(sa.sin_addr));
+        if (result == 0)
+            invalid_config_file();
+        _host = host;
+    }
+}
+
 void    Server::set_port(std::string port) {
     if (port.length() > 5)
         invalid_config_file();
@@ -37,14 +55,17 @@ void    Server::set_port(std::string port) {
 
 void    Server::set_client_max_body_size(std::string max_size) {
     //check if last character is M
-    if (max_size[max_size.length() - 1] != 'M')
-        invalid_config_file();
+    // if (max_size[max_size.length() - 1] != 'M')
+    //     invalid_config_file();
     //check if all characters are digits except last one
     for (size_t i = 0; i < max_size.length() - 1; i++) {
         if (!std::isdigit(max_size[i]))
             invalid_config_file();
+        if (i > 19)
+            invalid_config_file();
     }
-    _client_max_body_size = stoi(max_size);
+    // convert to unsigned long long and store in _client_max_body_size with atoll and remove last character 'M'
+    _client_max_body_size = atoll(max_size.substr(0, max_size.length() - 1).c_str());
 }
 
 void    Server::set_server_name(std::string server_name) {
@@ -65,13 +86,21 @@ void    Server::set_location(std::string path) {
     _location.insert(std::make_pair(path, Location()));
 }
 
+void    Server::set_socket_fd(int socket_fd) {
+    _socket_fd = socket_fd;
+}
+
 /*      GETTERS       */
 
 int                                     &Server::get_port() {
     return _port;
 }
 
-int                                     &Server::get_client_max_body_size() {
+std::string                             &Server::get_host() {
+    return _host;
+}
+
+unsigned long long                      &Server::get_client_max_body_size() {
     return _client_max_body_size;
 }
 
@@ -91,13 +120,17 @@ std::map<std::string, Location>   &Server::get_location(void) {
     return _location;
 }
 
+int                                     &Server::get_socket_fd() {
+    return _socket_fd;
+}
+
 /*      DEBUG      */
 void    Server::print_server() {
     //draw a visible banner to show debug info
     std::cout << "----------------------------------------" << std::endl;
     if (_port != -1)
         std::cout << "port: " << _port << std::endl;
-    if (_client_max_body_size != -1)
+    if (_client_max_body_size != MAX_SIZE)
         std::cout << "client_max_body_size: " << _client_max_body_size << std::endl;
     if (_server_name.size() != 0) {
         std::cout << "server_name: ";
