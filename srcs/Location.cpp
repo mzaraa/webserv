@@ -1,7 +1,12 @@
 #include "../includes/Location.hpp"
 
 Location::Location() {
+    _root = "";
+    _method.clear();
+    _index = "";
     _autoindex = false;
+    _redirect.clear();
+    _cgi.clear();
 }
 
 Location::Location(const Location &src) {
@@ -15,6 +20,7 @@ Location &Location::operator=(const Location &src) {
         _index = src._index;
         _autoindex = src._autoindex;
         _redirect = src._redirect;
+        _cgi = src._cgi;
     }
     return *this;
 }
@@ -27,12 +33,21 @@ void    Location::set_root(std::string root) {
 }
 
 void    Location::set_method(std::vector<std::string> methods) {
+    // print methods to debug
+    // for (size_t i = 1; i < methods.size(); i++)
+    //     std::cout << methods[i] << std::endl;
+
+
     for (size_t i = 1; i < methods.size(); i++){
         if (methods[i] == "GET" || methods[i] == "POST" || methods[i] == "DELETE")
-        _method.insert(methods[i]);
+            _method.insert(methods[i]);
         else
             invalid_config_file();
     }
+    // // print _method to debug
+    // for (std::set<std::string>::iterator it = _method.begin(); it != _method.end(); it++) {
+    //     std::cout << *it << std::endl;
+    // }
 }
 
 void    Location::set_index(std::string index) {
@@ -60,6 +75,12 @@ void    Location::set_redirect(std::vector<std::string> tokens) {
     _redirect.insert(std::make_pair(error_code, uri));
 }
 
+void    Location::set_cgi(std::vector<std::string> cgi) {
+    if (cgi.size() != 3)
+        invalid_config_file();
+    _cgi.insert(std::make_pair(cgi[1], cgi[2]));
+}
+
 /*      GETTERS       */
 std::string                 Location::get_root() const {
     return _root;
@@ -79,6 +100,10 @@ bool                        Location::get_autoindex() const {
 
 std::map<int, std::string>  Location::get_redirect() const {
     return _redirect;
+}
+
+std::map<std::string, std::string> Location::get_cgi() const {
+    return _cgi;
 }
 
 /*      DEBUG      */

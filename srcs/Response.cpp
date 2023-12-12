@@ -1,6 +1,7 @@
 #include "../includes/Response.hpp"
 
 Response::Response() {
+    cgi = NULL;
     _mime_types = std::map<std::string, std::string>();
     _status_codes = std::map<int, std::string>();
     _server = NULL;
@@ -93,6 +94,7 @@ Response::Response(const Response &src) {
 
 Response &Response::operator=(const Response &src) {
     if (this != &src) {
+        this->cgi = src.cgi;
         this->_status_codes = src._status_codes;
         this->_mime_types = src._mime_types;
         this->_full_response = src._full_response;
@@ -118,24 +120,22 @@ void Response::create_response() {
 }
 
 void Response::build_response() {
-    //std::cout << "BUILD RESPONSE 1" << std::endl;
     if (_request->get_code_error() != 0) {
         _error_code = _request->get_code_error();
+        std::cout << "ERROR CODE: " << _error_code << std::endl;
         build_error_response();
     }
-    //std::cout << "BUILD RESPONSE 2" << std::endl;
-    if (_request->get_body().size() > _server->get_client_max_body_size()) {
+    else if (_request->get_body().size() > _server->get_client_max_body_size()) {
         _error_code = 413;
         build_error_response();
     }
-    //std::cout << "BUILD RESPONSE 3" << std::endl;
-    // TODO: continue the build_response function
-    if (manage_location() == false) {
+    else if (manage_location() == false) {
         build_error_response();
     }
-    //std::cout << "BUILD RESPONSE 4" << std::endl;
-    if (_is_cgi)
+    if (_is_cgi){
+        std::cout << "IS CGI" << std::endl;
         return ;
+    }
     else if (_auto_index) {
         if (generate_auto_index() == false) {
             build_error_response();
@@ -169,9 +169,13 @@ void Response::complete_response() {
     }
     _headers.append("\r\n");
     _full_response.append(_headers);
-    if (_request->get_method() == "GET" || _error_code == 200) {
+    //std::cout << "FULL RESPONSE" << std::endl;
+    if (_request->get_method() == "GET" || _error_code != 200) {
         _full_response.append(_body);
     }
+    // print full response
+    std::cout << "FULL RESPONSE: " << std::endl;
+    std::cout << _full_response << std::endl;
 }
 
 bool Response::generate_auto_index() {
@@ -205,29 +209,36 @@ bool Response::generate_auto_index() {
 
 bool Response::manage_location() {
     std::string best_location = "";
-
+    std::cout << "REQUEST PATH: " << _request->get_path() << std::endl;
     for (std::map<std::string, Location>::iterator it = _server->get_location().begin(); it != _server->get_location().end(); it++) {
+        std::cout << "LOCATION: " << it->first << std::endl;
         if (_request->get_path().find(it->first) == 0) {
             if (it->first == "/" || it->first.length() == _request->get_path().length() || _request->get_path()[it->first.length()] == '/') {
-                if (best_location.length() > it->first.length()) {
+                if (best_location.length() < it->first.length()) {
                     best_location = it->first;
                 }
             }
         }
     }
+    std::cout << "--------------------------------------------" << std::endl;
+    std::cout << "HEREEEEEE BEST LOCATION: " << best_location << std::endl;
     // if no location found for the request
     if (best_location.empty()) {
         _file = construct_path(_server->get_location()["/"].get_root(), _request->get_path());
+        std::cout << "BEST LOCATION EMPTY -- _file_root: " << _file << std::endl;
         // if _file is a directory
         if (is_directory(_file)) {
             // if there is no '/' at the end of the path
             if (_file[_file.length() - 1] != '/') {
+                std::cout << "HERE" << std::endl;
                 _error_code = 301;
                 _redirect_url = _request->get_path() + "/";
                 return (false);
             }
             _file.append(_server->get_location()["/"].get_index());
+            std::cout << "BEST LOCATION EMPTY -- _file_index: " << _file << std::endl;
             if (!exist(_file)) {
+                std::cout << "HERE 2" << std::endl;
                 _error_code = 403;
                 return (false);
             }
@@ -243,17 +254,24 @@ bool Response::manage_location() {
             
     }
     else {
+        std::cout << "BEST LOCATION NOT EMPTY: " << best_location << std::endl;
         Location location = _server->get_location()[best_location];
+        std::set<std::string> tmp = location.get_method();
+        std::cout << "HERE DELETE DEBUG 1" << std::endl;
         // check if method of the request is allowed in the location
-        if (location.get_method().find(_request->get_method()) == location.get_method().end()) {
+        if (tmp.find(_request->get_method()) == tmp.end()) {
             _error_code = 405;
             return (false);
         }
+        std::cout << "HERE DELETE DEBUG 2" << std::endl;
         // check if there is return in the location
         std::map<int, std::string>::iterator it = location.get_redirect().begin();
         if (it != location.get_redirect().end()) {
             _error_code = it->first;
             _redirect_url = it->second;
+            if (_redirect_url[0] != '/') {
+                _redirect_url = "/" + _redirect_url;
+            }
             return (false);
         }
         // check if path is the cgi directory
@@ -263,6 +281,8 @@ bool Response::manage_location() {
         }
         // if not cgi, check if path is a directory
         _file = construct_path(location.get_root(), _request->get_path().substr(best_location.length()));
+        std::cout << "FILE: " << _file << std::endl;
+        std::cout << "----------------------" << std::endl;
         if (is_directory(_file)) {
             // if file is a directory and there is no '/' at the end of the path, add it and redirect to the new url
             if (_file[_file.length() - 1] != '/') {
@@ -275,15 +295,21 @@ bool Response::manage_location() {
                 _error_code = 403;
                 return (false);
             }
-            else
-                _file.append(location.get_index());
+            else if (!location.get_index().empty() && location.get_autoindex() == false) {
+                _file.append(location.get_index()); 
+            }
+            else 
+                _file.append("doesntexist");
             // if file doesn't exist, check for autoindex then return 403 forbidden if autoindex is false 
             if (!exist(_file)) {
+                std::cout << "FILE DOESN'T EXIST" << std::endl;
                 if (location.get_autoindex() == false) {
+                    std::cout << "AUTOINDEX FALSE" << std::endl;
                     _error_code = 403;
                     return (false);
                 }
                 else {
+                    std::cout << "AUTOINDEX TRUE" << std::endl;
                     _file.erase(_file.find_last_of('/') + 1);
                     _auto_index = true;
                     return (true);
@@ -375,7 +401,12 @@ bool    Response::manage_cgi(std::string &best_location) {
     else if (_request->get_path() == "/cgi") {
         cgi_path.append(_request->get_path()).append("/").append(_server->get_location()[best_location].get_index());
     }
+    // cgi_path[0] == '/' remove it
+    if (cgi_path[0] == '/') {
+        cgi_path = cgi_path.substr(1);
+    }
 
+    std::cout << "CGI PATH: " << cgi_path << std::endl;
     // check allowed methods
     if (_server->get_location()[best_location].get_method().find(_request->get_method()) == _server->get_location()[best_location].get_method().end()) {
         _error_code = 405;
@@ -397,11 +428,24 @@ bool    Response::manage_cgi(std::string &best_location) {
     }
     // check if we have rights to execute the file
     if (access(cgi_path.c_str(), X_OK) == -1) {
+        std::cout << "ERROR: " << strerror(errno) << std::endl;
         _error_code = 403;
         return (false);
     }
     _is_cgi = true;
-    // todo: execute cgi
+
+    // print headers request
+    std::cout << "--------------------------------------------------------------" << std::endl;
+    std::cout << "REQUEST HEADERS" << std::endl;
+    std::map<std::string, std::string> headers = _request->get_headers();
+    for (std::map<std::string, std::string>::iterator it = headers.begin(); it != headers.end(); it++) {
+        std::cout << it->first << ": " << it->second << std::endl;
+    }
+    std::cout << "--------------------------------------------------------------" << std::endl;
+
+    // TODO : execute cgi
+
+    std::cout << "CGI TRUE "<< std::endl;
     return (true);
 }
 
@@ -416,17 +460,16 @@ std::string Response::construct_path(std::string root, std::string path) {
 }
 
 void Response::build_error_response() {
-    std::cout << "BUILD ERROR RESPONSE BEFORE IF" << std::endl;
-    if (_server->get_error_page().empty() || (_server->get_error_page().find(_error_code) == _server->get_error_page().end())) {
+    if (_request->get_method() == "DELETE" || _request->get_method() == "POST" || _server->get_error_page().empty() || (_server->get_error_page().find(_error_code) == _server->get_error_page().end())) {
+        std::cout << "PEUT PAD DELETE DONC CREATION HTML ERROR PAGE" << std::endl;
         create_html_error_page(_error_code);
     }
     else {
-        std::cout << "BUILD ERROR RESPONSE IN ELSE" << std::endl;
         if (_error_code >= 400 && _error_code < 500) {
             // send redirect url
             _redirect_url = _server->get_error_page()[_error_code];
             //check if url is relative or absolute
-            _error_code = 301;
+            _error_code = 302;
             if (_redirect_url[0] != '/' || (_redirect_url[0] != '.' && _redirect_url[1] != '/')) {
                 _redirect_url = "/" + _redirect_url;
             }
@@ -481,6 +524,18 @@ void Response::set_remaining_body(int remaining_body) {
     _full_response = _full_response.substr(remaining_body);
 }
 
+void Response::set_error(int error_code) {
+    _error_code = error_code;
+    _body = "";
+    _full_response = "";
+    build_error_response();
+    complete_response();
+}
+
+void Response::set_cgi_status(bool status) {
+    _is_cgi = status;
+}
+
 /*     GETTERS       */
 std::string Response::get_status_code(int code) const {
     std::string status_code;
@@ -504,6 +559,10 @@ bool Response::is_cgi() const {
     return (_is_cgi);
 }
 
-std::string Response::get_full_response() const {
+std::string &Response::get_full_response() {
     return (_full_response);
+}
+
+int Response::get_error_code() const {
+    return _error_code;
 }

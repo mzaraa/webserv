@@ -22,12 +22,15 @@ class WebservManager {
         void    connection_attempt(Server &server);
         void    receive_request(Client &client);
         void    send_response(Client &client);
+        void    send_cgi(Client &client);
+        void    read_cgi(Client &client);
         void    close_connection(Client &client);
         void    match_server(Client &client);
         void    disconnect_client();
 
     private:
         bool _webserv_alive;
+        int _cgi_state;
         int _max_fd;
         int _select_ret;
         fd_set _current_readfds;

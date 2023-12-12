@@ -2,9 +2,11 @@
 # define RESPONSE_HPP
 
 # include "Utils.hpp"
+# include "Cgi.hpp"
 
 class Server;
 class Request;
+class Cgi;
 
 class Response {
     public:
@@ -31,16 +33,20 @@ class Response {
         void set_server(Server *server);
         void set_request(Request *request);
         void set_remaining_body(int remaining_body);
+        void set_error(int error_code);
+        void set_cgi_status(bool status);
 
         /*      GETTERS       */
         std::string get_status_code(int code) const;
         std::string get_mime_type(std::string extension) const;
-        std::string get_full_response() const;
+        std::string &get_full_response();
         bool is_cgi() const;
+        int  get_error_code() const;
 
         /*      DEBUG       */
         void print_response() const;
 
+        Cgi     *cgi;
     private:
         std::map<int, std::string> _status_codes;
         std::map<std::string, std::string> _mime_types;

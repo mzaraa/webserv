@@ -16,6 +16,7 @@ class Location {
         void    set_index(std::string index);
         void    set_autoindex(std::string str);
         void    set_redirect(std::vector<std::string> tokens);
+        void    set_cgi(std::vector<std::string> cgi);
 
         /*      GETTERS       */
         std::string                 get_root() const;
@@ -23,6 +24,7 @@ class Location {
         std::string                 get_index() const;
         bool                        get_autoindex() const;
         std::map<int, std::string>  get_redirect() const;
+        std::map<std::string, std::string> get_cgi() const;
 
         /*      DEBUG      */
         void    print_location();
@@ -33,6 +35,7 @@ class Location {
         std::string                 _index;
         bool                        _autoindex;
         std::map<int, std::string>  _redirect;
+        std::map<std::string, std::string> _cgi;
 
 };
 

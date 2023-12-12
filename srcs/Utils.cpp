@@ -1,5 +1,24 @@
 #include "../includes/Utils.hpp"
 
+void replace_char(std::string& str, char old_c, char new_c) {
+    size_t length = str.length();
+
+    for (size_t i = 0; i < length; ++i) {
+        if (str[i] == old_c) {
+            str[i] = new_c;
+        }
+    }
+}
+
+void to_upper(std::string& str) {
+    size_t length = str.length();
+
+    for (size_t i = 0; i < length; ++i) {
+        str[i] = static_cast<char>(toupper(str[i]));
+    }
+}
+
+
 std::vector<std::string>    get_files_in_directory(const std::string &path) {
     std::vector<std::string>    files;
     DIR                         *dp;

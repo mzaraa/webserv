@@ -8,7 +8,8 @@ SRCS		= srcs/main.cpp \
 			srcs/Client.cpp \
 			srcs/Request.cpp \
 			srcs/Response.cpp \
-			srcs/WebservManager.cpp
+			srcs/WebservManager.cpp \
+			srcs/Cgi.cpp 
 HEADERS		=
 CC			= g++
 CPP_FLAGS	= -std=c++98 -Wall -Wextra -Werror

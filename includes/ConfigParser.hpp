@@ -27,6 +27,7 @@ class ConfigParser {
         /*      UTILS         */
         void    setup_server(std::vector<std::string> tokens, Server &server);
         void    setup_location(std::vector<std::string> tokens, Location &location);
+        void    setup_location_cgi(std::vector<std::string> tokens, Location &location);
         void    parse_config_file(std::ifstream &ifs, std::vector<Server> &servers);
 
         /*      SETTERS       */

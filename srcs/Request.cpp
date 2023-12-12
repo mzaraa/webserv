@@ -185,7 +185,9 @@ void Request::parse_chunked_body(std::istringstream &iss) {
 void Request::parse_first_line(std::string &first_line) {
     std::istringstream iss(first_line);
     iss >> _method >> _path >> _version;
-    //std::cout << "Method: " << _method << std::endl;
+    std::cout << "Method: " << _method << std::endl;
+    std::cout << "Path: " << _path << std::endl;
+    std::cout << "Version: " << _version << std::endl;
     if (_path.find("?") != std::string::npos) {
         _query_string = _path.substr(_path.find("?") + 1);
         _path = _path.substr(0, _path.find("?"));
@@ -274,6 +276,10 @@ bool Request::is_boundary() const {
 
 int Request::get_code_error() const {
     return _code_error;
+}
+
+std::string Request::get_query_string() const {
+    return _query_string;
 }
 
 

@@ -17,6 +17,7 @@
 # include <sys/socket.h>
 # include <sys/time.h> 
 # include <sys/types.h>
+# include <sys/wait.h>
 # include <netinet/in.h>
 # include <arpa/inet.h>
 # include <map>
@@ -41,5 +42,7 @@ bool                        is_ip_address(std::string str);
 bool                        file_exists(const std::string &path);
 bool                        exist(std::string path);
 std::vector<std::string>    get_files_in_directory(const std::string &path);
+void                        replace_char(std::string &str, char old_c, char new_c);
+void                        to_upper(std::string &str);
 
 #endif /* UTILS_HPP */

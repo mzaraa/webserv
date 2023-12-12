@@ -41,6 +41,7 @@ class Request {
         std::string                 get_boundary() const;
         bool                        is_boundary() const;
         int                         get_code_error() const;
+        std::string                 get_query_string() const;
 
         /*      DEBUG       */
         void print_request() const;

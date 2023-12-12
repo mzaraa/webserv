@@ -1,6 +1,6 @@
 #include "../includes/WebservManager.hpp"
 
-WebservManager::WebservManager(std::vector<Server> servers) : _webserv_alive(true), _max_fd(0), _select_ret(0){
+WebservManager::WebservManager(std::vector<Server> servers) : _webserv_alive(true), _cgi_state(0), _max_fd(0), _select_ret(0){
     _vec_servers = servers;
 }
 
@@ -17,6 +17,7 @@ WebservManager &WebservManager::operator=(const WebservManager &src) {
         this->_vec_servers = src._vec_servers;
         this->_clients = src._clients;
         this->_servers = src._servers;
+        this->_cgi_state = src._cgi_state;
     }
     return (*this);
 }
@@ -56,7 +57,7 @@ void    WebservManager::setup_servers_socket() {
         _max_fd = std::max(_max_fd, _vec_servers[i].get_socket_fd());
         std::cout << "Server listening on " << _vec_servers[i].get_host() << ":" << _vec_servers[i].get_port() << std::endl;
         // //print socket_fd of _vec_servers[i] and i 
-        std::cout << "max_fd: " << _max_fd << std::endl;
+        //std::cout << "max_fd: " << _max_fd << std::endl;
     }
 }
 
@@ -80,8 +81,11 @@ void    WebservManager::life_cycle() {
                 receive_request(_clients[i]);
             }
             else if (FD_ISSET(i, &_writefds) && _clients.find(i) != _clients.end()) {
-                //TODO AFTER PREPARE RESPONSE
-                if (FD_ISSET(i, &_writefds) && _clients[i].get_response()->is_cgi() == false) {
+                //TODO: CGI
+                if ((_clients[i].get_response()->is_cgi() == false) && FD_ISSET(i, &_writefds)) {
+                    std::cout << "-----------------------------------------" << std::endl;
+                    std::cout << "SEND RESPONSE" << std::endl;
+                    std::cout << "-----------------------------------------" << std::endl;
                     send_response(_clients[i]);
                 }
             }
@@ -89,6 +93,7 @@ void    WebservManager::life_cycle() {
         disconnect_client();
     }
 }
+
 
 void WebservManager::send_response(Client &client) {
     std::cout << "Sending response to client" << std::endl;
@@ -101,14 +106,30 @@ void WebservManager::send_response(Client &client) {
     if (send_ret == -1) {
         close_connection(client);
     }
-    else if (send_ret == 0) {
-        close_connection(client);
-    }
-    else if (send_ret > 0 || (size_t)send_ret == response.length()) {
-        close_connection(client);
+    else if (send_ret == 0 || (size_t)send_ret == response.length()) {
+        if (client.get_response()->is_cgi() || client.get_response()->get_error_code()) {
+            close_connection(client);
+        }
+        else {
+            if (FD_ISSET(client.get_fd(), &_current_writefds)) {
+                FD_CLR(client.get_fd(), &_current_writefds);
+                if (client.get_fd() == _max_fd) {
+                    _max_fd--;
+                }
+            }
+            FD_SET(client.get_fd(), &_current_readfds);
+            _max_fd = std::max(_max_fd, client.get_fd());
+            if (client.get_request() != NULL) {
+                delete client.get_request();
+            }
+            if (client.get_response() != NULL) {
+                delete client.get_response();
+            }
+        }
     }
     else{
         client.get_response()->set_remaining_body(send_ret);
+        client.timer();
     }
 }
 
@@ -132,9 +153,9 @@ void    WebservManager::connection_attempt(Server &server) {
 
 void    WebservManager::receive_request(Client &client) {
     std::cout << "Receiving request from client" << std::endl;
-    char buffer[2000];
+    char buffer[42000];
     int read_ret = 0;
-    if ((read_ret = recv(client.get_fd(), buffer, 2000, 0)) == -1) {
+    if ((read_ret = recv(client.get_fd(), buffer, 42000, 0)) == -1) {
         std::cout << "Error: recv failed" << std::endl;
         close_connection(client);
         return ;
@@ -153,6 +174,7 @@ void    WebservManager::receive_request(Client &client) {
                 //std::cout << "Header received" << std::endl;
                 client.get_request()->parse_request(client.get_raw_request());
             }
+            client.timer();
         }
         else if (!client.get_request()->full_body_received()) {
             // append to body
@@ -180,8 +202,14 @@ void    WebservManager::receive_request(Client &client) {
         client.get_response()->set_request(client.get_request());
         client.get_response()->create_response();
         // client.get_request()->print_request();
-        //std::cout << "TOUT est OK" << std::endl;
+        std::cout << "TOUT est OK" << std::endl;
         if (client.get_response()->is_cgi()) {
+            // add to _current_writefds pipe_fd_in[1]
+            FD_SET(client.get_response()->cgi->_pipe_fd_in[1], &_current_writefds);
+            _max_fd = std::max(_max_fd, client.get_response()->cgi->_pipe_fd_in[1]);
+            // add to _current_readfds pipe_fd_out[0]
+            FD_SET(client.get_response()->cgi->_pipe_fd_out[0], &_current_readfds);
+            _max_fd = std::max(_max_fd, client.get_response()->cgi->_pipe_fd_out[0]);
             std::cout << "CGI" << std::endl;
         }
     }
@@ -204,6 +232,7 @@ void    WebservManager::close_connection(Client &client) {
     close(client.get_fd());
     // clear allocated memory
     delete client.get_request();
+    delete client.get_response()->cgi;
     delete client.get_response();
     // remove from _clients
     _clients.erase(client.get_fd());
@@ -230,7 +259,7 @@ void    WebservManager::match_server(Client &client) {
 void   WebservManager::disconnect_client() {
     time_t current_time = time(NULL);
     for (std::map<int, Client>::iterator it = _clients.begin(); it != _clients.end(); it++) {
-        if ((current_time - it->second.get_last_activity()) > 30) {
+        if ((current_time - it->second.get_last_activity()) > 60) {
             close_connection(it->second);
         }
     }

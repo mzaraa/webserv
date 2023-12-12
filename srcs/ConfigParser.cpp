@@ -22,6 +22,8 @@ ConfigParser::ConfigParser(const ConfigParser &src) {
 ConfigParser &ConfigParser::operator=(const ConfigParser &src) {
     if (this != &src) {
         _server_count = src._server_count;
+        _status = src._status;
+
     }
     return *this;
 }
@@ -31,6 +33,7 @@ ConfigParser::~ConfigParser() {}
 void    ConfigParser::parse_config_file(std::ifstream &ifs, std::vector<Server> &servers) {
     std::stack<char>    bracket;
     std::string         line;
+    int                 is_cgi = 0;
 
     while (std::getline(ifs, line)) {
         _status = line_checker(line, bracket, *this);
@@ -49,9 +52,14 @@ void    ConfigParser::parse_config_file(std::ifstream &ifs, std::vector<Server> 
                 if (_status == NONE)
                     break;
                 if (_status == LOCATION) {
-                    server.set_location(split(line)[1]);
-                    Location &location = server.get_location(split(line)[1]);
-
+                    std::vector<std::string> tokens = split(line);
+                    // if (tokens[1][tokens[1].length() - 1] != '/')
+                    //     tokens[1] += '/';
+                    server.set_location(tokens[1]);
+                    Location &location = server.get_location(tokens[1]);
+                    if (line.find("cgi") != std::string::npos) {
+                        is_cgi = 1;
+                    }
                     while (_status == LOCATION) {
                         getline(ifs, line);
                         _status = line_checker(line, bracket, *this);
@@ -62,10 +70,17 @@ void    ConfigParser::parse_config_file(std::ifstream &ifs, std::vector<Server> 
                             continue;
                         }
                         std::vector<std::string> tokens = split(trim(line));
-                        setup_location(tokens, location);
+                        if (is_cgi) 
+                            setup_location_cgi(tokens, location);
+                        else
+                            setup_location(tokens, location);
                     }
                     if (_status == SERVER)
+                    {
+                        if (is_cgi)
+                            is_cgi = 0;
                         continue;
+                    }
                 }
                 setup_server(split(line), server);
                 //std::cout << "line :" << line << std::endl;
@@ -101,6 +116,19 @@ void    ConfigParser::setup_location(std::vector<std::string> tokens, Location &
         location.set_method(tokens);
     else if (tokens[0] == "redirect" && tokens.size() == 3)
         location.set_redirect(tokens);
+    else
+        invalid_config_file();
+}
+
+void    ConfigParser::setup_location_cgi(std::vector<std::string> tokens, Location &location) {
+    if (tokens[0] == "root" && tokens.size() == 2)
+        location.set_root(tokens[1]);
+    else if (tokens[0] == "index" && tokens.size() == 2)
+        location.set_index(tokens[1]);
+    else if (tokens[0] == "allow_methods" && tokens.size() >= 2)
+        location.set_method(tokens);
+    else if (tokens[0] == "cgi" && tokens.size() == 3)
+        location.set_cgi(tokens);
     else
         invalid_config_file();
 }
