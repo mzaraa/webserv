@@ -155,7 +155,7 @@ void Request::parse_body(std::istringstream &iss) {
         // buffer[_content_length] = '\0';
         _body.append(buffer, iss.gcount());
         _remaining_body = _content_length - _body.size();
-        std::cout << "Remaining body: " << _remaining_body << std::endl;
+        // std::cout << "Remaining body: " << _remaining_body << std::endl;
         if (_remaining_body > 0) {
             _full_body_received = false;
         }

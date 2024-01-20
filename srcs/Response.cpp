@@ -233,7 +233,7 @@ bool Response::manage_location() {
         }
     }
     // std::cout << "--------------------------------------------" << std::endl;
-    std::cout << "HEREEEEEE BEST LOCATION: " << best_location << std::endl;
+    // std::cout << "HEEEEE BEST LOCATION: " << best_location << std::endl;
     // if no location found for the request
     if (best_location.empty()) {
         _file = construct_path(_server->get_location()["/"].get_root(), _request->get_path());

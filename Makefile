@@ -12,7 +12,7 @@ SRCS		= srcs/main.cpp \
 			srcs/Cgi.cpp 
 HEADERS		=
 CC			= clang++
-CPP_FLAGS	= -std=c++98 -Wall -Wextra -Werror
+CPP_FLAGS	= -std=c++98 -Wall -Wextra -Werror -g -fsanitize=address -fsanitize=undefined
 LD			= $(CC)
 OBJS		= $(SRCS:%.cpp=%.o)
 RM			= rm -rf
