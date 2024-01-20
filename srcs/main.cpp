@@ -60,6 +60,9 @@ int main (int ac, char *av[]) {
         return 1;
     }
 
+    // for (size_t i = 0; i < servers.size(); i++) {
+    //     servers[i].print_server();
+    // }
 
     WebservManager webserv_manager(servers);
     webserv_manager.setup_servers_socket();
@@ -70,8 +73,5 @@ int main (int ac, char *av[]) {
     // setup_servers_socket(servers, &servers_socket);
     // life_cycle(servers_socket);
     // print servers
-    // for (int i = 0; i < servers.size(); i++) {
-    //     servers[i].print_server();
-    // }
     return 0;
 }

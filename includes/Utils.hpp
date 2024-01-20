@@ -44,5 +44,6 @@ bool                        exist(std::string path);
 std::vector<std::string>    get_files_in_directory(const std::string &path);
 void                        replace_char(std::string &str, char old_c, char new_c);
 void                        to_upper(std::string &str);
+std::string                 to_string(int i);
 
 #endif /* UTILS_HPP */

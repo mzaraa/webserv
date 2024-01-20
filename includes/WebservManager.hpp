@@ -27,10 +27,11 @@ class WebservManager {
         void    close_connection(Client &client);
         void    match_server(Client &client);
         void    disconnect_client();
+        void    remove_boundary(std::string &body, std::string boundary);
 
     private:
         bool _webserv_alive;
-        int _cgi_state;
+        // int _cgi_state;
         int _max_fd;
         int _select_ret;
         fd_set _current_readfds;

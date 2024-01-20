@@ -55,7 +55,7 @@ Request::~Request() {
 }
 
 void Request::parse_request(std::string raw_request) {
-    std::cout << "Parsing request..." << std::endl;
+    // std::cout << "Parsing request..." << std::endl;
     std::istringstream iss(raw_request);
     std::string line;
     std::getline(iss, line);
@@ -101,6 +101,8 @@ void Request::parse_request(std::string raw_request) {
     //std::cout << "Request parsed - now error checking" << std::endl;
     check_error();
     //std::cout << "Parsing DOne" << std::endl;
+    //print body
+    // std::cout << "Body: " << _body << std::endl;
 }
 
 void Request::check_error(){
@@ -135,24 +137,25 @@ void Request::check_error(){
 }
 
 void Request::parse_body(std::istringstream &iss) {
-    // if (_headers.find("Content-Type") != _headers.end()) {
-    //     std::string type = _headers["Content-Type"];
-    //     if (type.find("multipart/form-data") != std::string::npos) {
-    //         size_t boundaryPos = _headers["Content-Type"].find("boundary=");
-    //         if (boundaryPos != std::string::npos) {
-    //             _boundary = _headers["Content-Type"].substr(boundaryPos + 9);
-    //             _is_boundary = true;
-    //         }
-    //     }
-    // }
+    if (_headers.find("Content-Type") != _headers.end()) {
+        std::string type = _headers["Content-Type"];
+        if (type.find("multipart/form-data") != std::string::npos) {
+            size_t boundaryPos = _headers["Content-Type"].find("boundary=");
+            if (boundaryPos != std::string::npos) {
+                _boundary = _headers["Content-Type"].substr(boundaryPos + 9);
+                _is_boundary = true;
+            }
+        }
+    }
     if (_headers.find("Content-Length") != _headers.end()) {
         _content_length = std::atoi(_headers["Content-Length"].c_str());
-        char buffer[_content_length + 1];
+        char buffer[42001];
         //read from iss into buffer
-        iss.read(buffer, _content_length);
-        buffer[_content_length] = '\0';
-        _body.append(buffer);
-        _remaining_body = _content_length - iss.tellg();
+        iss.read(buffer, 42001);
+        // buffer[_content_length] = '\0';
+        _body.append(buffer, iss.gcount());
+        _remaining_body = _content_length - _body.size();
+        std::cout << "Remaining body: " << _remaining_body << std::endl;
         if (_remaining_body > 0) {
             _full_body_received = false;
         }
@@ -185,9 +188,9 @@ void Request::parse_chunked_body(std::istringstream &iss) {
 void Request::parse_first_line(std::string &first_line) {
     std::istringstream iss(first_line);
     iss >> _method >> _path >> _version;
-    std::cout << "Method: " << _method << std::endl;
-    std::cout << "Path: " << _path << std::endl;
-    std::cout << "Version: " << _version << std::endl;
+    // std::cout << "Method: " << _method << std::endl;
+    // std::cout << "Path: " << _path << std::endl;
+    // std::cout << "Version: " << _version << std::endl;
     if (_path.find("?") != std::string::npos) {
         _query_string = _path.substr(_path.find("?") + 1);
         _path = _path.substr(0, _path.find("?"));
@@ -230,7 +233,7 @@ std::map<std::string, std::string> Request::get_headers() const {
     return _headers;
 }
 
-std::string Request::get_body() const {
+std::string& Request::get_body() {
     return _body;
 }
 
@@ -275,6 +278,7 @@ bool Request::is_boundary() const {
 }
 
 int Request::get_code_error() const {
+    // std::cout << "HERE" << _body.size() << std::endl;
     return _code_error;
 }
 
@@ -302,6 +306,10 @@ void Request::set_server_name(std::string server_name) {
 
 void Request::set_host(std::string host) {
     _host = host;
+}
+
+void Request::set_body(std::string body) {
+    _body = body;
 }
 
 /*      DEBUG       */

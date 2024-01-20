@@ -20,6 +20,7 @@ class Client {
 
         void        timer();
         void        set_server(Server &server);
+        void        set_has_received_header(bool has_received_header);
         /*      GETTERS       */
         int         get_fd() const;
         bool        has_received_header() const;

@@ -11,7 +11,7 @@ SRCS		= srcs/main.cpp \
 			srcs/WebservManager.cpp \
 			srcs/Cgi.cpp 
 HEADERS		=
-CC			= g++
+CC			= clang++
 CPP_FLAGS	= -std=c++98 -Wall -Wextra -Werror
 LD			= $(CC)
 OBJS		= $(SRCS:%.cpp=%.o)

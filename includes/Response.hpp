@@ -29,7 +29,7 @@ class Response {
         /*      SETTERS       */
         void set_status_line();
         // void set_headers(std::string headers);
-        // void set_body(std::string body);
+        void set_body(std::string body, int size);
         void set_server(Server *server);
         void set_request(Request *request);
         void set_remaining_body(int remaining_body);
@@ -47,6 +47,7 @@ class Response {
         void print_response() const;
 
         Cgi     *cgi;
+        int     _cgi_state;
     private:
         std::map<int, std::string> _status_codes;
         std::map<std::string, std::string> _mime_types;

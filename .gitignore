@@ -6,3 +6,10 @@
 !**/*.hpp
 !.gitignore
 !Makefile
+!*/*.py
+!**/*.html
+!**/*.css
+!**/*.ico
+!**/test2
+!**/test3
+!*.conf

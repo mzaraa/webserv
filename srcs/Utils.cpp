@@ -158,7 +158,7 @@ e_status line_checker(std::string line, std::stack<char> &bracket, ConfigParser 
             bracket.push('{');
             return SERVER;
         }
-    std::cout << "line :" << line << std::endl;
+    // std::cout << "line :" << line << std::endl;
         invalid_config_file();
     }
     else if (config.get_status() == SERVER) {
@@ -185,4 +185,10 @@ e_status line_checker(std::string line, std::stack<char> &bracket, ConfigParser 
     }
     invalid_config_file();
     return ERROR;
+}
+
+std::string to_string(int i) {
+    std::stringstream s;
+    s << i;
+    return s.str();
 }

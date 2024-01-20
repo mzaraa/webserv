@@ -23,13 +23,14 @@ class Request {
         void set_port(int port);
         void set_server_name(std::string server_name);
         void set_host(std::string host);
+        void set_body(std::string body);
 
         /*      GETTERS       */
         std::string                 get_method() const;
         std::string                 get_path() const;
         std::string                 get_version() const;
         std::map<std::string, std::string>  get_headers() const;
-        std::string                 get_body() const;
+        std::string&                 get_body();
         std::size_t                 get_content_length() const;
         int                         get_remaining_body() const;
         bool                        has_body() const;

@@ -86,3 +86,7 @@ Server      *Client::get_server() const {
 void        Client::set_server(Server &server) {
     _server = &server;
 }
+
+void        Client::set_has_received_header(bool has_received_header) {
+    _has_received_header = has_received_header;
+}
